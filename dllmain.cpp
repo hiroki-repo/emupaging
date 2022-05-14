@@ -17,7 +17,7 @@ BOOL APIENTRY DllMain( HMODULE hModule,
     return TRUE;
 }
 
-UINT8* directmem;
+UINT8* directmem = nullptr;
 
 UINT32 list4kpages[1048576];
 
@@ -36,6 +36,32 @@ UINT8(*ioread[65536])(int);
 void(*iowrite[65536])(int, int);
 
 UINT32 addressmask = ~0;
+
+extern "C" __declspec(dllexport) void* getptr4debug(int prm_0) {
+	switch (prm_0) {
+	case 0:
+		return &list4kpages;
+		break;
+	case 1:
+		return &ismmio4kpageswr;
+		break;
+	case 2:
+		return &ismmio4kpagesrd;
+		break;
+	case 3:
+		return &memread;
+		break;
+	case 4:
+		return &memwrite;
+		break;
+	case 5:
+		return &ioread;
+		break;
+	case 6:
+		return &iowrite;
+		break;
+	}
+}
 
 extern "C" __declspec(dllexport) void setaddrmask(UINT32 prm_0) { addressmask = prm_0; }
 extern "C" __declspec(dllexport) UINT32 getaddrmask(void) { return addressmask; }
@@ -60,13 +86,14 @@ extern "C" __declspec(dllexport) void setaddrspace(UINT32 prm_0, void* prm_1,int
 		}
 	}
 	else {
-		list4kpages[(prm_0 >> 12)] = (UINT32)(&prm_1);
+		list4kpages[(prm_0 >> 12)] = (UINT32)(prm_1);
+		ismmio4kpagesrd[(prm_0 >> 12)] = false;
 		ismmio4kpageswr[(prm_0 >> 12)] = false;
 	}
 }
 
 extern "C" __declspec(dllexport) UINT32 cpumemaccess(int prm_0, int prm_1, int prm_2) {
-	int addr4mac = prm_0 & addressmask;
+	UINT32 addr4mac = ((UINT32)prm_0) & addressmask;
 	switch (prm_2 & 3) {
 	case 0:
 		if (ismmio4kpageswr[(addr4mac >> 12)] == true) {
